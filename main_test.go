@@ -48,6 +48,30 @@ import (
 // 	w.Write([]byte(answer))
 // }
 
+func TestMainHandlerReturns200AndNonEmptyBody(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/?count=2&city=moscow", nil)
+
+	responseRecorder := httptest.NewRecorder()
+	handler := http.HandlerFunc(mainHandle)
+	handler.ServeHTTP(responseRecorder, req)
+
+	// Проверяем статус ответа
+	require.Equal(t, http.StatusOK, responseRecorder.Code)
+	// Проверяем, что тело ответа не пустое
+	assert.NotEmpty(t, responseRecorder.Body.String())
+}
+
+func TestMainHandlerReturns400AndWrongCityValue(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/?count=2&city=undefined", nil)
+
+	reqponseRecorder := httptest.NewRecorder()
+	handler := http.HandlerFunc(mainHandle)
+	handler.ServeHTTP(reqponseRecorder, req)
+
+	require.Equal(t, http.StatusBadRequest, reqponseRecorder.Code)
+	assert.Equal(t, "wrong city value", reqponseRecorder.Body.String())
+
+}
 func TestMainHandlerWhenCountMoreThanTotal(t *testing.T) {
 	totalCount := 4
 
@@ -58,12 +82,10 @@ func TestMainHandlerWhenCountMoreThanTotal(t *testing.T) {
 	handler.ServeHTTP(responseRecorder, req)
 
 	// Запрос сформирован корректно, сервис возвращает код ответа 200 и тело ответа не пустое.
-	expected := http.StatusOK
-	require.Equal(t, expected, responseRecorder.Code)
-
+	require.Equal(t, http.StatusOK, responseRecorder.Code)
 	// Город, который передаётся в параметре city, не поддерживается. Сервис возвращает код ответа 400 и ошибку wrong city value в теле ответа.
-	expectedString := "Мир кофе,Сладкоежка,Кофе и завтраки,Сытый студент"
-	assert.Equal(t, expectedString, responseRecorder.Body.String())
+	expected := "Мир кофе,Сладкоежка,Кофе и завтраки,Сытый студент"
+	assert.Equal(t, expected, responseRecorder.Body.String())
 	// Если в параметре count указано больше, чем есть всего, должны вернуться все доступные кафе.
 	expectedSlice := strings.Split(responseRecorder.Body.String(), ",")
 	assert.Len(t, expectedSlice, totalCount)
